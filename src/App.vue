@@ -1,9 +1,12 @@
-<script setup></script>
+<script setup>
+import Navbar from './components/Navbar.vue'
+</script>
 
 <template>
-  <h1 class="text-3xl font-bold text-red-600">
-    Tailwind funkar!
-  </h1>
+  <Navbar />
+  <main>
+    <RouterView />
+  </main>
 </template>
 
 <style scoped></style>
