@@ -7,7 +7,7 @@ function saveChanges() {
   router.push('/profil')
 }
 function deleteAccount() {
-  router.push('/login')
+  router.push('/logga-in')
 }
 </script>
 

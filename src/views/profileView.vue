@@ -1,23 +1,21 @@
 <script setup>
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
+const auth = useAuthStore()
 
-function editProfile() {
-  router.push('/redigera-profil')
-}
+const logout = async () => {
+  await fetch('https://nordicskin-restapi.onrender.com/api/logout', {
+    method: 'POST',
+    credentials: 'include'
+  })
 
-function logout() {
-  router.push('/')
+  auth.logout()
+  router.push('/logga-in')
 }
 </script>
 
 <template>
-  <h1>Profil</h1>
-  <button @click="editProfile">
-    REDIGERA
-  </button><br>
-  <button @click="logout">
-    LOGGA UT
-  </button>
+  <button @click="logout">Logga ut</button>
 </template>
