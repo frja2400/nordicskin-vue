@@ -19,8 +19,8 @@ const routes = [
   { path: '/profil', component: profileView },
   { path: '/produktlista', component: productListView },
   { path: '/redigera-profil', component: editProfileView },
-  { path: '/redigera-produkt', component: editProductView },
-  { path: '/produktinfo', component: productInfoView },
+  { path: '/produkter/:id/redigera', component: editProductView },
+  { path: '/produkter/:id', component: productInfoView },
   { path: '/skapa-produkt', component: addProductView }
 ]
 
