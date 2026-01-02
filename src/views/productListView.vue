@@ -1,3 +1,3 @@
 <template>
-  <h1>Produktlista</h1>
+  <h1>PRODUKTER</h1>
 </template>
