@@ -32,7 +32,7 @@ const fetchProduct = async () => {
 
 // Navigera till editProductView
 const goToEdit = () => {
-  router.push({ path: '/redigera-produkt', query: { id: route.params.id } });
+  router.push(`/produkter/${route.params.id}/redigera`);
 };
 
 // Tillbaka till produktlistan
@@ -67,8 +67,8 @@ onMounted(() => {
       <p><strong>Lagersaldo:</strong> {{ product.stock }}</p>
 
       <div class="buttons">
-        <button @click="goToEdit">Redigera</button>
-        <button @click="goBack">Tillbaka</button>
+        <button @click="goToEdit">REDIGERA</button>
+        <button @click="goBack">TILLBAKA</button>
       </div>
     </div>
   </div>

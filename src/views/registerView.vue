@@ -11,38 +11,40 @@ const email = ref('')
 const phone = ref('')
 const department = ref('')
 const password = ref('')
-const error = ref('')
+const errors = ref({})
+
+const clearError = (field) => {
+  errors.value[field] = ''
+}
 
 const register = async () => {
-  error.value = ''
+  errors.value = {}
 
+  // Frontend-validering
   if (!name.value.trim()) {
-    error.value = 'Namn måste fyllas i'
-    return
+    errors.value.name = 'Namn måste fyllas i'
   }
 
   if (!email.value.trim()) {
-    error.value = 'E-post måste fyllas i'
-    return
+    errors.value.email = 'E-post måste fyllas i'
   }
 
   if (!phone.value.trim()) {
-    error.value = 'Telefonnummer måste fyllas i'
-    return
+    errors.value.phone = 'Telefonnummer måste fyllas i'
   }
 
   if (!department.value.trim()) {
-    error.value = 'Avdelning måste fyllas i'
-    return
+    errors.value.department = 'Avdelning måste fyllas i'
   }
 
   if (!password.value.trim()) {
-    error.value = 'Lösenord måste fyllas i'
-    return
+    errors.value.password = 'Lösenord måste fyllas i'
+  } else if (password.value.length < 8) {
+    errors.value.password = 'Lösenordet måste vara minst 8 tecken'
   }
 
-  if (password.value.length < 8) {
-    error.value = 'Lösenordet måste vara minst 8 tecken'
+  // Om det finns valideringsfel, avbryt
+  if (Object.keys(errors.value).length > 0) {
     return
   }
 
@@ -62,8 +64,9 @@ const register = async () => {
     })
 
     if (!res.ok) {
-      const data = await res.json()
-      throw new Error(data.message || 'Registreringen misslyckades')
+      // Backend-validering: e-posten finns redan
+      errors.value.email = 'E-postadressen finns redan'
+      return
     }
 
     // Logga in automatiskt
@@ -78,8 +81,8 @@ const register = async () => {
     })
 
     if (!loginRes.ok) {
-      const data = await loginRes.json()
-      throw new Error(data.message || 'Automatisk inloggning misslyckades')
+      errors.value.password = 'Automatisk inloggning misslyckades'
+      return
     }
 
     const userData = await loginRes.json()
@@ -88,22 +91,90 @@ const register = async () => {
     router.push('/dashboard')
 
   } catch (err) {
-    error.value = err.message
+    errors.value.email = 'E-postadressen finns redan'
   }
 }
 </script>
 
 <template>
-  <div>
+  <div class="register-container">
     <h1>Skapa adminkonto</h1>
+
     <form @submit.prevent="register">
-      <input v-model="name" @input="error = ''" placeholder="Namn:" />
-      <input v-model="email" @input="error = ''" placeholder="E-postadress:" type="email" />
-      <input v-model="phone" @input="error = ''" placeholder="Telefonnummer:" />
-      <input v-model="department" @input="error = ''" placeholder="Avdelning:" />
-      <input v-model="password" @input="error = ''" placeholder="Lösenord:" type="password" />
+      <div class="form-group">
+        <input v-model="name" @input="clearError('name')" placeholder="Namn:" />
+        <p v-if="errors.name" class="error">{{ errors.name }}</p>
+      </div>
+
+      <div class="form-group">
+        <input v-model="email" @input="clearError('email')" placeholder="E-postadress:" type="email" />
+        <p v-if="errors.email" class="error">{{ errors.email }}</p>
+      </div>
+
+      <div class="form-group">
+        <input v-model="phone" @input="clearError('phone')" placeholder="Telefonnummer:" />
+        <p v-if="errors.phone" class="error">{{ errors.phone }}</p>
+      </div>
+
+      <div class="form-group">
+        <input v-model="department" @input="clearError('department')" placeholder="Avdelning:" />
+        <p v-if="errors.department" class="error">{{ errors.department }}</p>
+      </div>
+
+      <div class="form-group">
+        <input v-model="password" @input="clearError('password')" placeholder="Lösenord:" type="password" />
+        <p v-if="errors.password" class="error">{{ errors.password }}</p>
+      </div>
+
       <button type="submit">SKAPA KONTO</button>
     </form>
-    <p v-if="error">{{ error }}</p>
   </div>
 </template>
+
+<style scoped>
+.register-container {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+input:focus {
+  outline: none;
+  border-color: #555;
+}
+
+.error {
+  color: red;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background-color: #222;
+  color: white;
+  margin-top: 10px;
+}
+
+button:hover {
+  background-color: #000;
+}
+</style>

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { PlusIcon } from '@heroicons/vue/24/solid'
 
 const router = useRouter();
 const products = ref([]);
@@ -31,6 +32,11 @@ const fetchProducts = async () => {
 // Navigera till produkt-översikt
 const goToProduct = (id) => {
   router.push(`/produkter/${id}`);
+};
+
+// Navigera till lägg till produkt-sida
+const goToAddProduct = () => {
+  router.push('/skapa-produkt')
 };
 
 // Ändra lagersaldo direkt
@@ -65,6 +71,10 @@ onMounted(() => {
   <div class="product-list">
     <h1>PRODUKTER</h1>
 
+    <button aria-label="Lägg till produkt" @click="goToAddProduct">
+      <PlusIcon class="w-6 h-6 text-black" />
+    </button>
+
     <div v-if="loading">
       <p>Laddar produkter...</p>
     </div>
@@ -75,7 +85,7 @@ onMounted(() => {
 
     <div class="products-grid" v-if="!loading && !error">
       <div v-for="product in products" :key="product._id" class="product-card" @click="goToProduct(product._id)">
-        <img :src="product.imageUrl || 'https://via.placeholder.com/300x200?text=Ingen+bild'" alt="product image" />
+        <img :src="product.imageUrl" alt="product image" />
         <h2>{{ product.name }}</h2>
         <p>Pris: {{ product.price }} kr</p>
         <div class="stock-control" @click.stop>

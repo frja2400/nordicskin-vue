@@ -2,13 +2,15 @@
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { ref, onMounted } from 'vue'
+import Confirm from '@/components/Confirm.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
 
 const loading = ref(true)
 const saving = ref(false)
-const error = ref('')
+const errors = ref({})
+const confirmDialog = ref(null)
 
 // Formulärdata
 const formData = ref({
@@ -19,6 +21,10 @@ const formData = ref({
 })
 
 const userId = ref(null)
+
+const clearError = (field) => {
+  errors.value[field] = ''
+}
 
 // Hämta användaruppgifter och förifyll formuläret
 const fetchUser = async () => {
@@ -39,7 +45,8 @@ const fetchUser = async () => {
     userId.value = data._id
 
   } catch (err) {
-    error.value = err.message
+    // Om det inte går att hämta användaren, visa fel under email
+    errors.value.email = 'Kunde inte hämta användaruppgifter'
   } finally {
     loading.value = false
   }
@@ -49,25 +56,27 @@ const fetchUser = async () => {
 const saveChanges = async () => {
   if (!userId.value) return
 
-  error.value = ''
+  errors.value = {}
 
+  // Frontend-validering
   if (!formData.value.name.trim()) {
-    error.value = 'Namn måste fyllas i'
-    return
+    errors.value.name = 'Namn måste fyllas i'
   }
 
   if (!formData.value.email.trim()) {
-    error.value = 'E-post måste fyllas i'
-    return
+    errors.value.email = 'E-post måste fyllas i'
   }
 
   if (!formData.value.phone.trim()) {
-    error.value = 'Telefonnummer måste fyllas i'
-    return
+    errors.value.phone = 'Telefonnummer måste fyllas i'
   }
 
   if (!formData.value.department.trim()) {
-    error.value = 'Avdelning måste fyllas i'
+    errors.value.department = 'Avdelning måste fyllas i'
+  }
+
+  // Om det finns valideringsfel, avbryt
+  if (Object.keys(errors.value).length > 0) {
     return
   }
 
@@ -91,13 +100,17 @@ const saveChanges = async () => {
       body: JSON.stringify(payload)
     })
 
-    if (!res.ok) throw new Error('Kunde inte uppdatera profil')
+    if (!res.ok) {
+      // Backend-validering: e-posten finns redan
+      errors.value.email = 'E-postadressen finns redan'
+      return
+    }
 
     // Gå tillbaka till profilen
     router.push('/profil')
 
   } catch (err) {
-    error.value = err.message
+    errors.value.email = 'E-postadressen finns redan'
   } finally {
     saving.value = false
   }
@@ -108,9 +121,11 @@ const deleteAccount = async () => {
   if (!userId.value) return
 
   // Bekräfta att användaren verkligen vill radera
-  if (!confirm('Är du säker på att du vill radera ditt konto? Detta går inte att ångra.')) {
-    return
-  }
+  const confirmed = await confirmDialog.value.open(
+    'Är du säker på att du vill radera ditt konto? Detta går inte att ångra.'
+  )
+
+  if (!confirmed) return
 
   try {
     const res = await fetch(`https://nordicskin-restapi.onrender.com/api/users/${userId.value}`, {
@@ -118,7 +133,10 @@ const deleteAccount = async () => {
       credentials: 'include'
     })
 
-    if (!res.ok) throw new Error('Kunde inte radera konto')
+    if (!res.ok) {
+      errors.value.email = 'Kunde inte radera konto'
+      return
+    }
 
     // Logga ut och gå till inloggningssidan
     await fetch('https://nordicskin-restapi.onrender.com/api/logout', {
@@ -130,7 +148,7 @@ const deleteAccount = async () => {
     router.push('/logga-in')
 
   } catch (err) {
-    error.value = err.message
+    errors.value.email = 'Kunde inte radera konto'
   }
 }
 
@@ -145,51 +163,132 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
+  <div class="edit-profile-container">
     <h1>PROFIL</h1>
 
     <div v-if="loading">
       <p>Laddar...</p>
     </div>
 
-    <!-- Error message -->
-    <div v-if="error" class="error-message">
-      <p>{{ error }}</p>
-    </div>
-
     <!-- Formulär -->
-    <form @submit.prevent="saveChanges">
+    <form @submit.prevent="saveChanges" v-if="!loading">
       <div class="form-group">
         <label for="name">Namn:</label>
-        <input type="text" id="name" v-model="formData.name" />
+        <input type="text" id="name" v-model="formData.name" @input="clearError('name')" />
+        <p v-if="errors.name" class="error">{{ errors.name }}</p>
       </div>
 
       <div class="form-group">
         <label for="email">E-post:</label>
-        <input type="email" id="email" v-model="formData.email" />
+        <input type="email" id="email" v-model="formData.email" @input="clearError('email')" />
+        <p v-if="errors.email" class="error">{{ errors.email }}</p>
       </div>
 
       <div class="form-group">
         <label for="phone">Telefon:</label>
-        <input type="tel" id="phone" v-model="formData.phone" />
+        <input type="tel" id="phone" v-model="formData.phone" @input="clearError('phone')" />
+        <p v-if="errors.phone" class="error">{{ errors.phone }}</p>
       </div>
 
       <div class="form-group">
         <label for="department">Avdelning:</label>
-        <input type="text" id="department" v-model="formData.department" />
+        <input type="text" id="department" v-model="formData.department" @input="clearError('department')" />
+        <p v-if="errors.department" class="error">{{ errors.department }}</p>
       </div>
 
       <div class="buttons">
         <button type="submit" :disabled="saving">
           {{ saving ? 'SPARAR...' : 'SPARA' }}
-        </button><br>
-        <button type="button" @click="cancel">
+        </button>
+        <button type="button" @click="cancel" class="cancel-btn">
           AVBRYT
-        </button><br>
+        </button>
         <button type="button" @click="deleteAccount" class="delete-btn">
           RADERA KONTO
         </button>
       </div>
     </form>
+    <Confirm ref="confirmDialog" />
   </div>
 </template>
+
+<style scoped>
+.edit-profile-container {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+input:focus {
+  outline: none;
+  border-color: #555;
+}
+
+.error {
+  color: red;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+button {
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background-color: #222;
+  color: white;
+}
+
+button:hover {
+  background-color: #000;
+}
+
+button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.cancel-btn {
+  background-color: #888;
+}
+
+.cancel-btn:hover {
+  background-color: #555;
+}
+
+.delete-btn {
+  background-color: #dc2626;
+}
+
+.delete-btn:hover {
+  background-color: #b91c1c;
+}
+</style>
